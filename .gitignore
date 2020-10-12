@@ -1,0 +1,7 @@
+*
+!.gitignore
+!*.cpp
+!Makefile
+!first_names-1.txt
+!middle-names.txt
+!*.md
