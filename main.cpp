@@ -52,27 +52,43 @@ int main(int argc, char** argv) {
 
             size_t wsize = strlen(token) + 1;
 
-            void *request;
+            void* request;
             request = sbrk(wsize);
             strcpy((char*)request, token);
 
-            Name* name = new Name();
-            name->wptr = (char*)request;
-            name->size = wsize;
 
-            allocMBList.push_back(name);
+            if (counter < 20) {
+                Name* name = new Name();
+                name->wptr = (char*)request;
+                name->size = wsize;
+                allocMBList.push_back(name);
+
+            } else if (counter >= 20 && counter < 40) {
+
+                for (Name* freeName : freedMBList) {
+                    if (wsize <= (unsigned)freeName->size) {
+                        freeName->wptr = (char*)request;
+                        freeName->size = wsize;
+                        
+                        break;
+                    }
+                }
+
+            }
+
 
             ++counter;
 
-            if (counter == 1000) {
+            if (counter == 20) {
 
-                // for (Name* name : allocMBList) {
-                //     cout << "Starting address: " << (void*)name->wptr << ", size: " << name->size << ", name: " << name->wptr << endl;
-                // }
+                for (Name* name : allocMBList) {
+                    cout << "Starting address: " << (void*)name->wptr << ", size: " << name->size << ", name: " << name->wptr << endl;
+                }
+                cout << endl;
 
                 int randomCount = 0;
 
-                while (randomCount < 500) {
+                while (randomCount < 10) {
                     
                     int random = rand() % allocMBList.size();
                     // cout << random << endl;
@@ -85,46 +101,44 @@ int main(int argc, char** argv) {
                     ++randomCount;
                 }
 
-                // Testing - delete after
+                cout << "AT 20!" << endl;
+                for (Name* name : allocMBList) {
+                    cout << "Starting address: " << (void*)name->wptr << ", size: " << name->size << ", name: " << name->wptr << endl;
+                }
+                cout << endl;
 
-
-                cout << "Alloc List: " << allocMBList.size() << endl;
-                cout << "Freed List: " << freedMBList.size() << endl;
-
-                // list<Name*>::iterator it = std::next(allocMBList.begin(), 5);
-
-                // freedMBList.push_back(*it);
-                // allocMBList.remove(*it);
-
-                // for (Name* name : allocMBList) {
-                //     cout << "Starting address: " << (void*)name->wptr << ", size: " << name->size << ", name: " << name->wptr << endl;
-                // }
-
-                // cout << endl;
-
-                // for (Name* name: freedMBList) {
-                //     cout << "Starting address: " << (void*)name->wptr << ", size: " << name->size << ", name: " << name->wptr << endl;
-
-                // }
-
-                
-
-
-
-
-
-
-
+                for (Name* name : freedMBList) {
+                    cout << "Starting address: " << (void*)name->wptr << ", size: " << name->size << ", name: " << name->wptr << endl;
+                }
+                cout << endl;
 
             }
 
+            if (counter == 40) {
+
+                cout << "AT 40!" << endl;
+                for (Name* name : allocMBList) {
+                    cout << "Starting address: " << (void*)name->wptr << ", size: " << name->size << ", name: " << name->wptr << endl;
+                }
+                cout << endl;
+
+                for (Name* name : freedMBList) {
+                    cout << "Starting address: " << (void*)name->wptr << ", size: " << name->size << ", name: " << name->wptr << endl;
+                }
+                cout << endl;
+
+                cout << "alloc size: " << allocMBList.size() << endl;
+                cout << "freed size: " << freedMBList.size() << endl;
+
+                cout << "compare Address" << endl;
+                cout << (void*)freedMBList.front()->wptr << endl;
+                cout << freedMBList.front()->wptr << endl;
+                cout << freedMBList.front()->wptr[1] << endl;
+                cout << (void*)freedMBList.front()->wptr << endl;
+            }
+
+
         }
-
-
-
-
-
-
 
     }
 
@@ -132,3 +146,5 @@ int main(int argc, char** argv) {
 
     return EXIT_SUCCESS;
 }
+
+
