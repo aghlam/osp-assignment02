@@ -33,6 +33,10 @@ void splitMemoryBlock(list<Name*> &allocMBList, list<Name*> &freedMBList, list<N
 
 
 // ------ Helper methods ------
+/**
+ * Helps sort the memory addresses stored in a list in order
+ * @param memList reference list to be sorted
+*/
 void sortByMemAddress(list<Name*> &memList);
 
 void sortByMemSizeSmallToLarge(list<Name*> &memList);
@@ -113,27 +117,25 @@ int main(int argc, char** argv) {
 
             ++counter;
 
-            if (counter == 100) {
-                // Remove 
-                randomRemoval(allocMBList, freedMBList, 50);
+            if (counter == 1000) {
+                // Remove randomly
+                randomRemoval(allocMBList, freedMBList, 500);
                 
                 // Sort by address
                 sortByMemAddress(freedMBList);
 
                 // Combining any contiguous blocks
+                bool combined = true;
+                while (combined) {
+                    combined = combineMemoryBlock(freedMBList);
+                }
 
+            } else if (counter > 1000 && counter % 1000 == 0) {
 
-            } else if (counter > 100 && counter % 100 == 0) {
-
-                // cout << "alloc listl, size:  " << allocMBList.size() << endl;
-                // printMBList(allocMBList);
-
-                // cout << "free list, size: " << freedMBList.size() << endl;
-                // printMBList(freedMBList);
                 // Remove
                 randomRemoval(allocMBList, freedMBList, 50);
 
-                // Sort by address
+                // Sort
                 sortByMemAddress(freedMBList);
 
                 // Combine
@@ -261,7 +263,7 @@ void splitMemoryBlock(list<Name*> &allocMBList, list<Name*> &freedMBList, list<N
 
 
 // ------ Helper methods ------
-// Method to sort by address
+
 void sortByMemAddress(list<Name*> &memList) {
     memList.sort([](Name* a, Name* b) {
         return (void*)a->wptr < (void*)b->wptr;
@@ -308,5 +310,31 @@ void printMBList(list<Name*> memList) {
     }
 
     cout << endl;
+}
+
+void outputCSV(list<Name*> mbList, string filename, bool allocMBList) {
+
+    std::ofstream outfile;
+
+    // Output CSV file to filename
+    outfile.open(filename);
+
+    if (allocMBList) {
+        outfile << "Address," << "Size," << "Content" << endl;
+
+        for (Name* name : mbList) {
+            outfile << (void*)name->wptr << "," 
+                    << name->size << "," 
+                    << name->wptr 
+                    << endl;
+        }
+
+    } else {
+
+    }
+
+
+    outfile.close();
+
 }
 
