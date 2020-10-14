@@ -138,13 +138,19 @@ int main(int argc, char** argv) {
     list<Name*> freedMBList;
 
     if (argc != 4) {
-        cout << "Error - requires two arguments to run." << endl;
+        cout << "Error - requires three arguments to run." << endl;
         cout << "Run program with the input: ./main <strategy> <input> <output>" << endl;
         cout << "<scheduler> selection: -first | -best | -worst" << endl;
         cout << "<input>: Name of input file including extension" << endl;
         cout << "<output>: Name of output file including extension" << endl;
         return EXIT_FAILURE;
 
+    }
+
+    if (argv[1] != string("-best") && argv[1] != string("-first") && argv[1] != string("-worst")) {
+        cout << "Error - strategy input doesn't exist" << endl;
+        cout << "Please use: -first | -best | -worst" << endl;
+        return EXIT_FAILURE;
     }
 
     string outputFileName = argv[3];
@@ -154,6 +160,7 @@ int main(int argc, char** argv) {
     if (infile.fail()) {
         cout << "Error - could not open input file" << endl;
         cout << "Did you forget the extension?" << endl;
+        infile.close();
         return EXIT_FAILURE;
 
     } else {
