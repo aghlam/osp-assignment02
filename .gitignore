@@ -2,6 +2,6 @@
 !.gitignore
 !*.cpp
 !Makefile
-!first_names-1.txt
+!first-names-1.txt
 !middle-names.txt
 !*.md
