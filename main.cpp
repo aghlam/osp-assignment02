@@ -8,12 +8,29 @@ using std::cout;
 using std::endl;
 using std::list;
 
+
 struct Name {
 
     char* wptr;
     int size;
 
 };
+
+
+void createSbrkBlock(list<Name*> &memList, int wsize, const char* token);
+
+bool bestFitStrategy(list<Name*> &allocMBList, list<Name*> &freedMBList, int wsize, const char* token);
+
+bool combineMemoryBlock(list<Name*> &freedMBList);
+
+
+// ------ Helper methods ------
+void sortByMemAddress(list<Name*> &memList);
+
+void sortByMemSize(list<Name*> &memList);
+
+void printMBList(list<Name*> memList);
+// ----------------------------
 
 
 int main(int argc, char** argv) {
@@ -26,12 +43,15 @@ int main(int argc, char** argv) {
     list<Name*> allocMBList;
     list<Name*> freedMBList;
 
-    if (argc != 2) {
-        cout << "Requires input file. Please specify file name" << endl;
+    if (argc != 3) {
+        cout << "Error - requires two arguments to run." << endl;
+        cout << "Run program with the input: ./main <strategy> <filename>" << endl;
+        cout << "<scheduler> selection: -first | -best | -worst" << endl;
+        cout << "<filename>: Name of file including extension" << endl;
         return EXIT_FAILURE;
     }
 
-    infile.open(argv[1]);
+    infile.open(argv[2]);
 
     if (infile.fail()) {
         cout << "Error - could not open file" << endl;
@@ -42,6 +62,7 @@ int main(int argc, char** argv) {
 
         // Start allocating to list
         int counter = 0;
+
         std::string line;
         const char* token;
 
@@ -52,47 +73,33 @@ int main(int argc, char** argv) {
 
             size_t wsize = strlen(token) + 1;
 
-            void* request;
-            request = sbrk(wsize);
-            strcpy((char*)request, token);
+            if (counter < 100) {
 
+                createSbrkBlock(allocMBList, wsize, token);
 
-            if (counter < 20) {
-                Name* name = new Name();
-                name->wptr = (char*)request;
-                name->size = wsize;
-                allocMBList.push_back(name);
+            } else if (counter >= 100 && ((counter+1) % 50 == 0)) { // For every 500
 
-            } else if (counter >= 20 && counter < 40) {
-
-                for (Name* freeName : freedMBList) {
-                    if (wsize <= (unsigned)freeName->size) {
-                        freeName->wptr = (char*)request;
-                        freeName->size = wsize;
-                        
-                        break;
-                    }
+                if (!bestFitStrategy(allocMBList, freedMBList, wsize, token)) {
+                    createSbrkBlock(allocMBList, wsize, token);
                 }
 
             }
 
-
             ++counter;
 
-            if (counter == 20) {
+            if (counter == 100) {
 
-                for (Name* name : allocMBList) {
-                    cout << "Starting address: " << (void*)name->wptr << ", size: " << name->size << ", name: " << name->wptr << endl;
-                }
-                cout << endl;
+                
+                // Testing - delete after
+                cout << "Initial " << counter << " list" << endl;
+                printMBList(allocMBList);
 
                 int randomCount = 0;
 
-                while (randomCount < 10) {
+                // Randomly move n to freed list
+                while (randomCount < 50) {
                     
                     int random = rand() % allocMBList.size();
-                    // cout << random << endl;
-                    // cout << randomCount << endl;
                     list<Name*>::iterator it = std::next(allocMBList.begin(), random);
 
                     freedMBList.push_back(*it);
@@ -101,40 +108,27 @@ int main(int argc, char** argv) {
                     ++randomCount;
                 }
 
-                cout << "AT 20!" << endl;
-                for (Name* name : allocMBList) {
-                    cout << "Starting address: " << (void*)name->wptr << ", size: " << name->size << ", name: " << name->wptr << endl;
+                //Testing - delete after
+                cout << "alloc list after splitting" << endl;
+                printMBList(allocMBList);
+                
+                // Sort by address
+                sortByMemAddress(freedMBList);
+
+                // Testing - delete after
+                cout << "free list before merging, size: " << freedMBList.size() << endl;
+                printMBList(freedMBList);
+
+                // Combining any contiguous blocks
+                bool combined = true;
+                while (combined) {
+                    combined = combineMemoryBlock(freedMBList);
                 }
-                cout << endl;
 
-                for (Name* name : freedMBList) {
-                    cout << "Starting address: " << (void*)name->wptr << ", size: " << name->size << ", name: " << name->wptr << endl;
-                }
-                cout << endl;
+                // Testing - delete after
+                cout << "free list after merging, size: " << freedMBList.size() << endl;
+                printMBList(freedMBList);
 
-            }
-
-            if (counter == 40) {
-
-                cout << "AT 40!" << endl;
-                for (Name* name : allocMBList) {
-                    cout << "Starting address: " << (void*)name->wptr << ", size: " << name->size << ", name: " << name->wptr << endl;
-                }
-                cout << endl;
-
-                for (Name* name : freedMBList) {
-                    cout << "Starting address: " << (void*)name->wptr << ", size: " << name->size << ", name: " << name->wptr << endl;
-                }
-                cout << endl;
-
-                cout << "alloc size: " << allocMBList.size() << endl;
-                cout << "freed size: " << freedMBList.size() << endl;
-
-                cout << "compare Address" << endl;
-                cout << (void*)freedMBList.front()->wptr << endl;
-                cout << freedMBList.front()->wptr << endl;
-                cout << freedMBList.front()->wptr[1] << endl;
-                cout << (void*)freedMBList.front()->wptr << endl;
             }
 
 
@@ -144,7 +138,111 @@ int main(int argc, char** argv) {
 
     infile.close();
 
+    for (Name* name : allocMBList) {
+        delete name;
+    }
+
+    for (Name* name : freedMBList) {
+        delete name;
+    }
+
     return EXIT_SUCCESS;
 }
 
+// Find best fit
+bool bestFitStrategy(list<Name*> &allocMBList, list<Name*> &freedMBList, int wsize, const char* token) {
+
+    sortByMemSize(freedMBList); // Order the list by size
+
+    //Testing - delet after
+    // cout << "Freed list after sorting by size" << endl;
+    // printMBList(freedMBList);
+
+    list<Name*>::iterator it;
+
+    for(it = freedMBList.begin(); it != freedMBList.end(); ++it) {
+
+        // Since list is ordered by size, it should find the first wsize that fits
+        if (wsize == (*it)->size) {
+            strcpy((*it)->wptr, token); // Copy word over
+            allocMBList.push_back(*it); // Copy to alloc list
+            freedMBList.remove(*it); // Remove from free list
+            return true;
+
+        } else if (wsize < (*it)->size) {
+
+
+            //Splitting logic here
+
+            strcpy((*it)->wptr, token); // Copy word over
+            allocMBList.push_back(*it); // Copy to alloc list
+            freedMBList.remove(*it); // Remove from free list
+
+            return true;
+        }
+    }
+
+    return false;
+
+}
+
+void createSbrkBlock(list<Name*> &memList, int wsize, const char* token) {
+
+    void* request;
+    request = sbrk(wsize);
+    strcpy((char*)request, token);
+
+    Name* name = new Name();
+    name->size = wsize;
+    name->wptr = (char*)request;
+    memList.push_back(name);
+
+}
+
+
+bool combineMemoryBlock(list<Name*> &freedMBList) {
+
+    for (unsigned int i = 0; i < freedMBList.size()-1; ++i) {
+
+        list<Name*>::iterator it1 = std::next(freedMBList.begin(), i);
+        list<Name*>::iterator it2 = std::next(freedMBList.begin(), i+1);
+
+        if ((*it1)->wptr + (*it1)->size == (*it2)->wptr) {
+            (*it1)->size += (*it2)->size;
+
+            freedMBList.remove(*it2);
+
+            return true;
+        }
+
+    }
+
+    return false;
+}
+
+
+// ------ Helper methods ------
+// Method to sort by address
+void sortByMemAddress(list<Name*> &memList) {
+    memList.sort([](Name* a, Name* b) {
+        return (void*)a->wptr < (void*)b->wptr;
+    });
+}
+
+// Method to sort by size
+void sortByMemSize(list<Name*> &memList) {
+    memList.sort([](Name* a, Name* b) {
+        return (uintptr_t)a->size < (uintptr_t)b->size;
+    });
+}
+
+// For printing out the lists
+void printMBList(list<Name*> memList) {
+
+    for (Name* name : memList) {
+        printf("Starting address: %p, Size: %d, Name: %s\n", name->wptr, name->size, (char *)name->wptr);
+    }
+
+    cout << endl;
+}
 
