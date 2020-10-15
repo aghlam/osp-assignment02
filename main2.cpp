@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <memory>
 
+
 using std::cout;
 using std::endl;
 using std::list;
@@ -27,30 +28,110 @@ struct Name {
 };
 
 
+/**
+ * Uses First Fit Strategy to allocate new elements into memory
+ * @param allocMBList reference allocMBList to store used memory pointers
+ * @param freedMBList reference freedMBList to store free memory pointers
+ * @param wsize int size of the element to be stored
+ * @param token pointer to the element to be stored
+ * @return true if successfully allocated
+*/
 bool firstFitStrategy(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, int wsize, const char* token);
 
+/**
+ * Uses Best Fit Strategy to allocate new elements into memory
+ * After sorting the freedMBList from smallest to largest memory size it calls on 
+ * firstFitStrategy method to allocate as it uses the same logic.
+ * @param allocMBList reference allocMBList to store used memory pointers
+ * @param freedMBList reference freedMBList to store free memory pointers
+ * @param wsize int size of the element to be stored
+ * @param token pointer to the element to be stored
+ * @return true if successfully allocated
+*/
 bool bestFitStrategy(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, int wsize, const char* token);
 
+/**
+ * Uses Worst Fit Strategy to allocate new elements into memory.
+ * After sorting the freedMBList from largest to smallest memory size it calls on 
+ * firstFitStrategy method to allocate as it uses the same logic.
+ * @param allocMBList reference allocMBList to store used memory pointers
+ * @param freedMBList reference freedMBList to store free memory pointers
+ * @param wsize int size of the element to be stored
+ * @param token pointer to the element to be stored
+ * @return true if successfully allocated
+*/
 bool worstFitStrategy(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, int wsize, const char* token);
 
+/**
+ * Allocates new block of memory using sbrk() and adds it to list
+ * @param memList reference list to add new element
+ * @param wsize int size of memory block to be created
+ * @param token pointer to element to be stored
+*/
 void createSbrkBlock(list<shared_ptr<Name>> &memList, int wsize, const char* token);
 
+/**
+ * Used to combine any memory that are adjacent to each other in the list
+ * @param freedMBList list of elements to combine
+ * @return false if there are no more elements to combine
+*/
 bool combineMemoryBlock(list<shared_ptr<Name>> &freedMBList);
 
+/**
+ * Splits element into smaller memory blocks to allocate and saves them to the lists after allocation
+ * @param allocMBList reference list to save new element/memory block
+ * @param freedMBList reference list to save split memory block
+ * @param it iterator location of element to be split
+ * @param wsize int size of memory block to be stored
+ * @param token pointer to element to be stored
+*/
 void splitMemoryBlock(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, list<shared_ptr<Name>>::iterator it, int wsize, const char* token);
 
-void randomRemoval(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, int count);
-
+/**
+ * Sorts list based on memory address
+ * @param memList reference list to be sorted
+*/
 void sortByMemAddress(list<shared_ptr<Name>> &memList);
 
+/**
+ * Sorts list based on smallest to largest memory size
+ * @param memList reference list to be sorted
+*/
 void sortByMemSizeSmallToLarge(list<shared_ptr<Name>> &memList);
 
+/**
+ * Sorts list based on largest to smallest memory size
+ * @param memList reference list to be sorted
+*/
 void sortByMemSizeLargeToSmall(list<shared_ptr<Name>> &memList);
 
+/**
+ * Randomly removes elements from one list to another
+ * @param allocMBList reference allocMBList to remove from
+ * @param freedMBList reference freedMBList to move to
+ * @param count int number of elements to remove
+*/
+void randomRemoval(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, int count);
+
+/**
+ * Outputs data to a CSV file
+ * @param filename string name of file to be output to
+ * @param total int total amount of memory used
+*/
 void outputCSV(list<shared_ptr<Name>> allocMBList, list<shared_ptr<Name>> freedMBList, string filename, int total);
 
+/**
+ * Finds the total memory used by adding the size in each list
+ * @param allocMBList allocMBList to be added
+ * @param freedMBList freedMBList to be added
+ * @return int total of memory size
+*/
 int findTotalSize(list<shared_ptr<Name>> allocMBList, list<shared_ptr<Name>> freedMBList);
 
+/**
+ * Help for testing and prints out list
+ * @param memList list to be printed out
+*/
 void printMBList(list<shared_ptr<Name>> memList);
 
 
@@ -71,7 +152,6 @@ int main(int argc, char** argv) {
         cout << "<input>: Name of input file including extension" << endl;
         cout << "<output>: Name of output file including extension" << endl;
         return EXIT_FAILURE;
-
     }
 
     if (argv[1] != string("-best") && argv[1] != string("-first") && argv[1] != string("-worst")) {
@@ -155,13 +235,10 @@ int main(int argc, char** argv) {
     sortByMemAddress(freedMBList);
     sortByMemAddress(allocMBList);
 
-    // delete after
-    printMBList(allocMBList);
-    printMBList(freedMBList);
-
     int total = findTotalSize(allocMBList, freedMBList);
 
     outputCSV(allocMBList, freedMBList, outputFileName, total);
+
     cout << "Data output to " << outputFileName << endl;
 
     // Clean up
@@ -169,6 +246,7 @@ int main(int argc, char** argv) {
 
     return EXIT_SUCCESS;
 }
+
 
 bool firstFitStrategy(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, int wsize, const char* token) {
     
@@ -209,13 +287,10 @@ bool worstFitStrategy(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>
 
 void createSbrkBlock(list<shared_ptr<Name>> &memList, int wsize, const char* token) {
 
-    // auto request;
     auto request = sbrk(wsize);
     strcpy((char*)request, token);
 
     auto name = make_shared<Name>(wsize, (char*)request);
-    // name->size = wsize;
-    // name->wptr = (char*)request;
     memList.push_back(name);
 
 }
