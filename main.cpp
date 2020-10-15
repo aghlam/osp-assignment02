@@ -1,21 +1,38 @@
+/**
+ * Description: Operating System Principles Assignment 02
+ * This file implements a memory allocator which uses a 'First fit', 'Best fit' or 'Worst fit' strategy. 
+ * The program takes an input file and will output data to a file. The output file will work best with 
+ * a csv type file but can also be any other format.
+ * 
+ * @author Alan Lam - s3436174
+*/
+
 #include <cstring>
 #include <fstream>
 #include <iostream>
 #include <list>
 #include <string>
 #include <unistd.h>
+#include <memory>
 
 
 using std::cout;
 using std::endl;
 using std::list;
 using std::string;
+using std::shared_ptr;
+using std::make_shared;
 
 
 struct Name {
 
-    char* wptr;
+    Name(int size, char* wptr):
+        size(size),
+        wptr(wptr)
+    {}
+
     int size;
+    char* wptr;
 
 };
 
@@ -28,7 +45,7 @@ struct Name {
  * @param token pointer to the element to be stored
  * @return true if successfully allocated
 */
-bool firstFitStrategy(list<Name*> &allocMBList, list<Name*> &freedMBList, int wsize, const char* token);
+bool firstFitStrategy(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, int wsize, const char* token);
 
 /**
  * Uses Best Fit Strategy to allocate new elements into memory
@@ -40,7 +57,7 @@ bool firstFitStrategy(list<Name*> &allocMBList, list<Name*> &freedMBList, int ws
  * @param token pointer to the element to be stored
  * @return true if successfully allocated
 */
-bool bestFitStrategy(list<Name*> &allocMBList, list<Name*> &freedMBList, int wsize, const char* token);
+bool bestFitStrategy(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, int wsize, const char* token);
 
 /**
  * Uses Worst Fit Strategy to allocate new elements into memory.
@@ -52,7 +69,7 @@ bool bestFitStrategy(list<Name*> &allocMBList, list<Name*> &freedMBList, int wsi
  * @param token pointer to the element to be stored
  * @return true if successfully allocated
 */
-bool worstFitStrategy(list<Name*> &allocMBList, list<Name*> &freedMBList, int wsize, const char* token);
+bool worstFitStrategy(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, int wsize, const char* token);
 
 /**
  * Allocates new block of memory using sbrk() and adds it to list
@@ -60,14 +77,14 @@ bool worstFitStrategy(list<Name*> &allocMBList, list<Name*> &freedMBList, int ws
  * @param wsize int size of memory block to be created
  * @param token pointer to element to be stored
 */
-void createSbrkBlock(list<Name*> &memList, int wsize, const char* token);
+void createSbrkBlock(list<shared_ptr<Name>> &memList, int wsize, const char* token);
 
 /**
  * Used to combine any memory that are adjacent to each other in the list
  * @param freedMBList list of elements to combine
  * @return false if there are no more elements to combine
 */
-bool combineMemoryBlock(list<Name*> &freedMBList);
+bool combineMemoryBlock(list<shared_ptr<Name>> &freedMBList);
 
 /**
  * Splits element into smaller memory blocks to allocate and saves them to the lists after allocation
@@ -77,25 +94,25 @@ bool combineMemoryBlock(list<Name*> &freedMBList);
  * @param wsize int size of memory block to be stored
  * @param token pointer to element to be stored
 */
-void splitMemoryBlock(list<Name*> &allocMBList, list<Name*> &freedMBList, list<Name*>::iterator it, int wsize, const char* token);
+void splitMemoryBlock(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, list<shared_ptr<Name>>::iterator it, int wsize, const char* token);
 
 /**
  * Sorts list based on memory address
  * @param memList reference list to be sorted
 */
-void sortByMemAddress(list<Name*> &memList);
+void sortByMemAddress(list<shared_ptr<Name>> &memList);
 
 /**
  * Sorts list based on smallest to largest memory size
  * @param memList reference list to be sorted
 */
-void sortByMemSizeSmallToLarge(list<Name*> &memList);
+void sortByMemSizeSmallToLarge(list<shared_ptr<Name>> &memList);
 
 /**
  * Sorts list based on largest to smallest memory size
  * @param memList reference list to be sorted
 */
-void sortByMemSizeLargeToSmall(list<Name*> &memList);
+void sortByMemSizeLargeToSmall(list<shared_ptr<Name>> &memList);
 
 /**
  * Randomly removes elements from one list to another
@@ -103,14 +120,14 @@ void sortByMemSizeLargeToSmall(list<Name*> &memList);
  * @param freedMBList reference freedMBList to move to
  * @param count int number of elements to remove
 */
-void randomRemoval(list<Name*> &allocMBList, list<Name*> &freedMBList, int count);
+void randomRemoval(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, int count);
 
 /**
  * Outputs data to a CSV file
  * @param filename string name of file to be output to
  * @param total int total amount of memory used
 */
-void outputCSV(list<Name*> allocMBList, list<Name*> freedMBList, string filename, int total);
+void outputCSV(list<shared_ptr<Name>> allocMBList, list<shared_ptr<Name>> freedMBList, string filename, int total);
 
 /**
  * Finds the total memory used by adding the size in each list
@@ -118,13 +135,13 @@ void outputCSV(list<Name*> allocMBList, list<Name*> freedMBList, string filename
  * @param freedMBList freedMBList to be added
  * @return int total of memory size
 */
-int findTotalSize(list<Name*> allocMBList, list<Name*> freedMBList);
+int findTotalSize(list<shared_ptr<Name>> allocMBList, list<shared_ptr<Name>> freedMBList);
 
 /**
  * Help for testing and prints out list
  * @param memList list to be printed out
 */
-void printMBList(list<Name*> memList);
+void printMBList(list<shared_ptr<Name>> memList);
 
 
 int main(int argc, char** argv) {
@@ -134,8 +151,8 @@ int main(int argc, char** argv) {
 
     std::ifstream infile;
 
-    list<Name*> allocMBList;
-    list<Name*> freedMBList;
+    list<shared_ptr<Name>> allocMBList;
+    list<shared_ptr<Name>> freedMBList;
 
     if (argc != 4) {
         cout << "Error - requires three arguments to run." << endl;
@@ -144,7 +161,6 @@ int main(int argc, char** argv) {
         cout << "<input>: Name of input file including extension" << endl;
         cout << "<output>: Name of output file including extension" << endl;
         return EXIT_FAILURE;
-
     }
 
     if (argv[1] != string("-best") && argv[1] != string("-first") && argv[1] != string("-worst")) {
@@ -231,26 +247,19 @@ int main(int argc, char** argv) {
     int total = findTotalSize(allocMBList, freedMBList);
 
     outputCSV(allocMBList, freedMBList, outputFileName, total);
+
     cout << "Data output to " << outputFileName << endl;
 
     // Clean up
     sbrk(-total);
 
-    for (Name* name : allocMBList) {
-        delete name;
-    }
-
-    for (Name* name : freedMBList) {
-        delete name;
-    }
-
     return EXIT_SUCCESS;
 }
 
 
-bool firstFitStrategy(list<Name*> &allocMBList, list<Name*> &freedMBList, int wsize, const char* token) {
-
-    list<Name*>::iterator it;
+bool firstFitStrategy(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, int wsize, const char* token) {
+    
+    list<shared_ptr<Name>>::iterator it;
 
     for (it = freedMBList.begin(); it != freedMBList.end(); ++it) {
         if (wsize == (*it)->size) {
@@ -259,7 +268,6 @@ bool firstFitStrategy(list<Name*> &allocMBList, list<Name*> &freedMBList, int ws
             freedMBList.remove(*it);
 
             return true;
-
         } else if (wsize < (*it)->size) {
             splitMemoryBlock(allocMBList, freedMBList, it, wsize, token);
             return true;
@@ -270,7 +278,7 @@ bool firstFitStrategy(list<Name*> &allocMBList, list<Name*> &freedMBList, int ws
     return false;
 }
 
-bool bestFitStrategy(list<Name*> &allocMBList, list<Name*> &freedMBList, int wsize, const char* token) {
+bool bestFitStrategy(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, int wsize, const char* token) {
 
     sortByMemSizeSmallToLarge(freedMBList); // Order the list by size from smallest to largest
 
@@ -278,7 +286,7 @@ bool bestFitStrategy(list<Name*> &allocMBList, list<Name*> &freedMBList, int wsi
 
 }
 
-bool worstFitStrategy(list<Name*> &allocMBList, list<Name*> &freedMBList, int wsize, const char* token) {
+bool worstFitStrategy(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, int wsize, const char* token) {
 
     sortByMemSizeLargeToSmall(freedMBList); // Order the list by size from largest to smallest
 
@@ -286,25 +294,21 @@ bool worstFitStrategy(list<Name*> &allocMBList, list<Name*> &freedMBList, int ws
 
 }
 
-void createSbrkBlock(list<Name*> &memList, int wsize, const char* token) {
+void createSbrkBlock(list<shared_ptr<Name>> &memList, int wsize, const char* token) {
 
-    void* request;
-    request = sbrk(wsize);
+    auto request = sbrk(wsize);
     strcpy((char*)request, token);
 
-    Name* name = new Name();
-    name->size = wsize;
-    name->wptr = (char*)request;
+    auto name = make_shared<Name>(wsize, (char*)request);
     memList.push_back(name);
 
 }
 
-bool combineMemoryBlock(list<Name*> &freedMBList) {
+bool combineMemoryBlock(list<shared_ptr<Name>> &freedMBList) {
 
-    for (unsigned int i = 0; i < freedMBList.size()-1; ++i) {
-
-        list<Name*>::iterator it1 = std::next(freedMBList.begin(), i);
-        list<Name*>::iterator it2 = std::next(freedMBList.begin(), i+1);
+    for (unsigned int i = 0; i < freedMBList.size() - 1; ++i) {
+        list<shared_ptr<Name>>::iterator it1 = std::next(freedMBList.begin(), i);
+        list<shared_ptr<Name>>::iterator it2 = std::next(freedMBList.begin(), i + 1);
 
         if ((*it1)->wptr + (*it1)->size == (*it2)->wptr) {
             (*it1)->size += (*it2)->size;
@@ -319,60 +323,57 @@ bool combineMemoryBlock(list<Name*> &freedMBList) {
     return false;
 }
 
-void splitMemoryBlock(list<Name*> &allocMBList, list<Name*> &freedMBList, list<Name*>::iterator it, int wsize, const char* token) {
+void splitMemoryBlock(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, list<shared_ptr<Name>>::iterator it, int wsize, const char* token) {
 
-    // Create new struct
-    Name* newName = new Name();
+    // Split memory block and create new struct for smaller block
+    auto name = make_shared<Name>((*it)->size - wsize, &(*it)->wptr[wsize]);
 
-    // Split and add to free list
-    newName->wptr = &(*it)->wptr[wsize];
-    newName->size = (*it)->size - wsize;
-    freedMBList.push_back(newName);
+    freedMBList.push_back(name);
 
-    // Allocate, add to alloc list, remove from freed list
     strcpy((*it)->wptr, token);
     (*it)->size = wsize;
-    
+
+    // Allocate, add to alloc list, remove from freed list
     allocMBList.push_back(*it);
     freedMBList.remove(*it);
 
 }
 
-void sortByMemAddress(list<Name*> &memList) {
-    memList.sort([](Name* a, Name* b) {
-        return (void*)a->wptr < (void*)b->wptr;
+void sortByMemAddress(list<shared_ptr<Name>> &memList) {
+    memList.sort([](shared_ptr<Name> a, shared_ptr<Name> b) {
+        return a->wptr < b->wptr;   
     });
 }
 
-void sortByMemSizeSmallToLarge(list<Name*> &memList) {
-    memList.sort([](Name* a, Name* b) {
-        return (uintptr_t)a->size < (uintptr_t)b->size;
+void sortByMemSizeSmallToLarge(list<shared_ptr<Name>> &memList) {
+    memList.sort([](shared_ptr<Name> a, shared_ptr<Name> b) {
+        return a->size < b->size;
     });
 }
 
-void sortByMemSizeLargeToSmall(list<Name*> &memList) {
-    memList.sort([](Name* a, Name* b) {
-        return (uintptr_t)a->size > (uintptr_t)b->size;
+void sortByMemSizeLargeToSmall(list<shared_ptr<Name>> &memList) {
+    memList.sort([](shared_ptr<Name> a, shared_ptr<Name> b) {
+        return a->size > b->size;
     });
 }
 
-void randomRemoval(list<Name*> &allocMBList, list<Name*> &freedMBList, int count) {
+void randomRemoval(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, int count) {
 
     int randomCount = 0;
 
     while (randomCount < count) {
-        
         int random = rand() % allocMBList.size();
-        list<Name*>::iterator it = std::next(allocMBList.begin(), random);
+        list<shared_ptr<Name>>::iterator it = std::next(allocMBList.begin(), random);
 
         freedMBList.push_back(*it);
         allocMBList.remove(*it);
 
         ++randomCount;
     }
+
 }
 
-void outputCSV(list<Name*> allocMBList, list<Name*> freedMBList, string filename, int total) {
+void outputCSV(list<shared_ptr<Name>> allocMBList, list<shared_ptr<Name>> freedMBList, string filename, int total) {
 
     std::ofstream outfile;
 
@@ -385,10 +386,10 @@ void outputCSV(list<Name*> allocMBList, list<Name*> freedMBList, string filename
     outfile << "allocMBList" << endl;
     outfile << "Address," << "Size," << "Content" << endl;
 
-    for (Name* name : allocMBList) {
+    for (shared_ptr<Name> name : allocMBList) {
         outfile << (void*)name->wptr << "," 
                 << name->size << "," 
-                << name->wptr 
+                << name->wptr
                 << endl;
     }
 
@@ -397,7 +398,7 @@ void outputCSV(list<Name*> allocMBList, list<Name*> freedMBList, string filename
     outfile << "freedMBList" << endl;
     outfile << "Address," << "Size" << endl;
 
-    for (Name* name : freedMBList) {
+    for (shared_ptr<Name> name : freedMBList) {
         outfile << (void*)name->wptr << "," 
                 << name->size
                 << endl;
@@ -407,26 +408,27 @@ void outputCSV(list<Name*> allocMBList, list<Name*> freedMBList, string filename
 
 }
 
-int findTotalSize(list<Name*> allocMBList, list<Name*> freedMBList) {
+int findTotalSize(list<shared_ptr<Name>> allocMBList, list<shared_ptr<Name>> freedMBList) {
 
-    int a = 0, b = 0;
+    int total = 0;
 
-    for(Name* name : allocMBList) {
-        a += name->size;
+    for (shared_ptr<Name> name : allocMBList) {
+        total += name->size;
     }
 
-    for(Name* name : freedMBList) {
-        b += name->size;
+    for (shared_ptr<Name> name : freedMBList) {
+        total += name->size;
     }
     
-    return a + b;
-
+    return total;
 }
 
-void printMBList(list<Name*> memList) {
+void printMBList(list<shared_ptr<Name>> memList) {
 
-    for (Name* name : memList) {
-        printf("Starting address: %p, Size: %d, Name: %s\n", name->wptr, name->size, (char *)name->wptr);
+    cout << "List size: " << memList.size() << endl;
+
+    for (shared_ptr<Name> name : memList) {
+        printf("Starting address: %p, Size: %d, Name: %s\n", name->wptr, name->size, (char*)name->wptr);
     }
 
     cout << endl;
