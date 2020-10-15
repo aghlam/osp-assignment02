@@ -262,16 +262,18 @@ bool firstFitStrategy(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>
     list<shared_ptr<Name>>::iterator it;
 
     for (it = freedMBList.begin(); it != freedMBList.end(); ++it) {
-        if (wsize == (*it)->size) {
+        
+        if (wsize == (*it)->size) { // Finds first memory block that is of the same size
             strcpy((*it)->wptr, token);
             allocMBList.push_back(*it);
             freedMBList.remove(*it);
 
             return true;
-        } else if (wsize < (*it)->size) {
-            splitMemoryBlock(allocMBList, freedMBList, it, wsize, token);
-            return true;
 
+        } else if (wsize < (*it)->size) { // Finds first memory block that it will fit in
+            splitMemoryBlock(allocMBList, freedMBList, it, wsize, token);
+
+            return true;
         }
     }
 
