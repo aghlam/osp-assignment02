@@ -48,7 +48,7 @@ struct Name {
 bool firstFitStrategy(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, int wsize, const char* token);
 
 /**
- * Uses Best Fit Strategy to allocate new elements into memory
+ * Uses Best Fit Strategy to allocate new elements into memory. 
  * After sorting the freedMBList from smallest to largest memory size it calls on 
  * firstFitStrategy method to allocate as it uses the same logic.
  * @param allocMBList reference allocMBList to store used memory pointers
@@ -60,7 +60,7 @@ bool firstFitStrategy(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>
 bool bestFitStrategy(list<shared_ptr<Name>> &allocMBList, list<shared_ptr<Name>> &freedMBList, int wsize, const char* token);
 
 /**
- * Uses Worst Fit Strategy to allocate new elements into memory.
+ * Uses Worst Fit Strategy to allocate new elements into memory. 
  * After sorting the freedMBList from largest to smallest memory size it calls on 
  * firstFitStrategy method to allocate as it uses the same logic.
  * @param allocMBList reference allocMBList to store used memory pointers
@@ -187,9 +187,8 @@ int main(int argc, char** argv) {
         const char* token;
 
         // Start allocating to lists
-        while (!infile.eof()) {
+        while (std::getline(infile, line)) {
 
-            std::getline(infile, line);
             token = line.c_str();
 
             size_t wsize = strlen(token) + 1;
