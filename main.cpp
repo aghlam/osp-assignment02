@@ -193,10 +193,11 @@ int main(int argc, char** argv) {
 
             size_t wsize = strlen(token) + 1;
 
+            // Allocate first 1000
             if (counter < 1000) {
                 createSbrkBlock(allocMBList, wsize, token);
 
-            } else if (counter >= 1000) {
+            } else if (counter >= 1000) { // Calls different strategies to allocate
 
                 if (argv[1] == string("-first")) {
                     if (!firstFitStrategy(allocMBList, freedMBList, wsize, token)) {
@@ -219,8 +220,9 @@ int main(int argc, char** argv) {
 
             ++counter;
 
+            // At every 1000
             if (counter % 1000 == 0) {
-                // Remove randomly
+                // Remove randomly 500
                 randomRemoval(allocMBList, freedMBList, 500);
                 
                 // Sort by address
